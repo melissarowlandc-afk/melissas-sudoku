@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f6fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#211d28" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Sudoku">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Melissa's Sudoku</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <h1>Melissa's Sudoku</h1>
+      <button id="timer" class="timer" type="button" aria-label="Hide timer">
+        <span class="timer-icon" aria-hidden="true">⏱︎</span>
+        <span id="timer-value" aria-hidden="true">0:00</span>
+      </button>
+    </header>
+
+    <section class="score" aria-label="Player score">
+      <p>Score <strong id="score-value"></strong> <span aria-hidden="true">·</span> <span id="score-band"></span></p>
+      <div id="score-track" class="score-track" aria-hidden="true"></div>
+      <div id="score-labels" class="score-labels" aria-hidden="true"></div>
+    </section>
+
+    <noscript><p>Enable JavaScript to play Sudoku.</p></noscript>
+    <section id="loading" class="loading" hidden>
+      <span id="spinner" class="spinner" aria-hidden="true"></span>
+      <p id="loading-message" role="status"></p>
+      <button id="retry" class="primary-button" type="button" hidden>Try again</button>
+    </section>
+
+    <section id="game" class="game" aria-label="Puzzle" hidden>
+      <div class="board-frame">
+        <div id="board" class="board" role="grid" aria-label="Sudoku board" aria-rowcount="9" aria-colcount="9"></div>
+      </div>
+
+      <div id="controls" class="controls">
+        <div class="tools" role="group" aria-label="Puzzle tools">
+          <button id="undo" class="tool" type="button"><span class="tool-icon" aria-hidden="true">↶</span>Undo</button>
+          <button id="erase" class="tool" type="button" aria-pressed="false"><span class="tool-icon" aria-hidden="true">⌫</span>Erase</button>
+          <button id="hint" class="tool" type="button" aria-controls="hint-card" aria-expanded="false"><span class="tool-icon hint-icon" aria-hidden="true"></span>Hint</button>
+          <button id="restart" class="tool" type="button"><span class="tool-icon" aria-hidden="true">⟳</span>Restart</button>
+          <button id="next" class="tool" type="button"><span class="tool-icon" aria-hidden="true">→</span>Next puzzle</button>
+        </div>
+
+        <section id="hint-card" class="hint-card" aria-labelledby="hint-title" hidden>
+          <button id="hint-close" class="hint-close" type="button" aria-label="Close hint">✕</button>
+          <div class="hint-copy">
+            <div role="status" aria-atomic="true">
+              <h2 id="hint-title"></h2>
+              <p id="hint-summary"></p>
+            </div>
+            <button id="hint-more" class="hint-more" type="button" aria-controls="hint-detail" aria-expanded="false" hidden>Explain more ›</button>
+            <p id="hint-detail" hidden></p>
+          </div>
+        </section>
+
+        <div id="pad" class="pad" role="group" aria-label="Number pad"></div>
+        <p id="game-message" class="game-message" role="status"></p>
+      </div>
+
+      <section id="completion" class="completion" aria-labelledby="completion-title" hidden>
+        <h2 id="completion-title" tabindex="-1">Solved!</h2>
+        <p id="completion-details"></p>
+        <p id="completion-score" class="completion-score"></p>
+        <button id="completion-next" class="primary-button" type="button">Next puzzle</button>
+      </section>
+    </section>
+
+    <dialog id="confirm-dialog" aria-labelledby="confirm-question">
+      <h2 id="confirm-question"></h2>
+      <div class="dialog-actions">
+        <button id="confirm-cancel" class="secondary-button" type="button" autofocus>Cancel</button>
+        <button id="confirm-action" class="primary-button" type="button"></button>
+      </div>
+    </dialog>
+  </main>
+</body>
+</html>
