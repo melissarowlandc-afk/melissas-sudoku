@@ -47,6 +47,10 @@
 
 * {
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 [hidden] {
@@ -219,10 +223,7 @@ h1 {
   border: 2px solid var(--box-line);
   background: var(--surface);
   container-type: inline-size;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
 .board-row {

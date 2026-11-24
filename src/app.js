@@ -48,6 +48,8 @@ const elements = {
 };
 const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const arrowMoves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+const HOLD_THRESHOLD_MS = 350;
+const PRESS_DRIFT_LIMIT_PX = 10;
 
 let progress = recordCompletion(loadProgress());
 let focusedCell = 0;
@@ -475,6 +477,15 @@ function cancelPress() {
   activePress = null;
 }
 
+function movedBeyondPressLimit(press, { clientX, clientY }) {
+  return Math.hypot(clientX - press.startX, clientY - press.startY) > PRESS_DRIFT_LIMIT_PX;
+}
+
+function activatePressedCell(cell, held) {
+  const changed = activateCell(cell, held);
+  if (held && changed) navigator.vibrate?.(10);
+}
+
 function containsPoint(element, { clientX, clientY }) {
   const { left, right, top, bottom } = element.getBoundingClientRect();
   return clientX >= left && clientX < right && clientY >= top && clientY < bottom;
@@ -487,35 +498,32 @@ elements.board.addEventListener('pointerdown', (event) => {
   moveFocus(cell);
   button.setPointerCapture(event.pointerId);
   const press = {
-    id: event.pointerId, button, cell, held: false, clientX: event.clientX, clientY: event.clientY,
+    id: event.pointerId,
+    cell,
+    held: false,
+    startedAt: event.timeStamp,
+    startX: event.clientX,
+    startY: event.clientY,
   };
   activePress = press;
   press.timeout = setTimeout(() => {
-    if (!containsPoint(button, press)) {
-      cancelPress();
-      return;
-    }
+    if (activePress !== press) return;
     press.held = true;
-    if (activateCell(cell, true)) navigator.vibrate?.(10);
-  }, 400);
+    activatePressedCell(cell, true);
+  }, HOLD_THRESHOLD_MS);
 });
 
 elements.board.addEventListener('pointermove', (event) => {
   const press = activePress;
-  if (press?.id !== event.pointerId) return;
-  if (!containsPoint(press.button, event)) {
-    cancelPress();
-    return;
-  }
-  press.clientX = event.clientX;
-  press.clientY = event.clientY;
+  if (press?.id === event.pointerId && movedBeyondPressLimit(press, event)) cancelPress();
 });
 
 elements.board.addEventListener('pointerup', (event) => {
   const press = activePress;
   if (press?.id !== event.pointerId) return;
   cancelPress();
-  if (!press.held && containsPoint(press.button, event)) activateCell(press.cell, false);
+  if (press.held || movedBeyondPressLimit(press, event)) return;
+  activatePressedCell(press.cell, event.timeStamp - press.startedAt >= HOLD_THRESHOLD_MS);
 });
 
 for (const type of ['pointercancel', 'lostpointercapture']) {
@@ -524,15 +532,21 @@ for (const type of ['pointercancel', 'lostpointercapture']) {
   });
 }
 
-elements.board.addEventListener('contextmenu', (event) => event.preventDefault());
+// iOS sends pointerdown before touchstart, so board cells can suppress the native touch gesture.
+elements.board.addEventListener('touchstart', (event) => event.preventDefault(), { passive: false });
 elements.board.addEventListener('click', (event) => {
+  if (event.detail !== 0 || event.pointerType) return;
   const cell = event.target.closest('.cell');
-  if (cell && event.detail === 0) activateCell(Number(cell.dataset.cell), false);
+  if (cell) activateCell(Number(cell.dataset.cell), false);
 });
 elements.board.addEventListener('focusin', (event) => {
   const cell = event.target.closest('.cell');
   if (cell) moveFocus(Number(cell.dataset.cell));
 });
+
+for (const type of ['selectstart', 'contextmenu']) {
+  document.addEventListener(type, (event) => event.preventDefault());
+}
 
 document.addEventListener('keydown', (event) => {
   if (!progress.game || progress.game.completion || elements.dialog.open) return;

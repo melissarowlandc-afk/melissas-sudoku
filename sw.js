@@ -1,5 +1,5 @@
 const CACHE_PREFIX = `melissas-sudoku:${self.registration.scope}:`;
-const CACHE_NAME = `${CACHE_PREFIX}v5`;
+const CACHE_NAME = `${CACHE_PREFIX}v6`;
 const PRECACHE = [
   "./",
   "./index.html",
