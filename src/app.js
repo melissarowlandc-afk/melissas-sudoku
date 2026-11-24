@@ -1,5 +1,5 @@
 import {
-  advancePuzzle, closeHint, createGame, isFilled, longPress, matchesTarget, numberAt,
+  advancePuzzle, closeHint, createGame, digitCounts, isFilled, longPress, matchesTarget, numberAt,
   recordCompletion, restart, selectErase, selectNumber, showHint, tap, toggleHintDetail, undo,
 } from './game.js';
 import { bandOf } from './rating.js';
@@ -263,7 +263,14 @@ function render() {
 
   elements.undo.disabled = game.undoStack.length === 0;
   elements.erase.setAttribute('aria-pressed', game.selection === 'erase');
-  keys.forEach((key, index) => key.setAttribute('aria-pressed', game.selection === digits[index]));
+  const counts = digitCounts(game);
+  keys.forEach((key, index) => {
+    const digit = digits[index];
+    const allPlaced = counts[digit] >= 9;
+    key.setAttribute('aria-pressed', game.selection === digit);
+    key.classList.toggle('all-placed', allPlaced);
+    key.setAttribute('aria-label', allPlaced ? `${digit}, all nine placed` : String(digit));
+  });
   renderHint(game);
   renderMessage();
 }

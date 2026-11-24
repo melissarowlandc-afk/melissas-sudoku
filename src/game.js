@@ -23,6 +23,14 @@ export function numberAt(state, cell) {
   return state.givens[cell] || state.entries[cell];
 }
 
+// How many times each digit 1-9 is on the board (givens plus big entries). Index 0 is unused.
+export function digitCounts(state) {
+  const counts = Array(10).fill(0);
+  for (let cell = 0; cell < 81; cell++) counts[numberAt(state, cell)]++;
+  counts[0] = 0;
+  return counts;
+}
+
 export function selectNumber(state, digit) {
   return { ...state, selection: state.selection === digit ? null : digit };
 }

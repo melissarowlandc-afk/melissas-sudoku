@@ -396,6 +396,20 @@ h1 {
   font-weight: 650;
 }
 
+/* A number already on the board nine times: grayed out but still tappable. */
+.key.all-placed {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  opacity: .45;
+}
+
+.key.all-placed[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  opacity: .55;
+}
+
 .game-message {
   min-block-size: 1rem;
   color: var(--muted);
