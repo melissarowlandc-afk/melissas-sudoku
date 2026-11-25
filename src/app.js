@@ -48,7 +48,7 @@ const elements = {
 };
 const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const arrowMoves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-const HOLD_THRESHOLD_MS = 350;
+const HOLD_THRESHOLD_MS = 250;
 const PRESS_DRIFT_LIMIT_PX = 10;
 
 let progress = recordCompletion(loadProgress());
