@@ -433,7 +433,6 @@ h1 {
 .hint-card {
   position: relative;
   padding: .625rem .75rem;
-  padding-inline-end: 3rem;
   border-color: var(--hint-line);
   background: var(--hint-card);
   font-size: .875rem;
@@ -445,15 +444,59 @@ h1 {
   font-size: .9375rem;
 }
 
+.hint-card.expanded {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
 .hint-copy {
-  max-block-size: min(9rem, 21dvh);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  max-block-size: min(14rem, 28dvh);
+}
+
+.hint-card.expanded .hint-copy {
+  max-block-size: min(22rem, 38dvh);
+}
+
+.hint-copy:has(> .hint-detail.can-scroll-down:not([hidden]))::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: .625rem;
+  background: linear-gradient(transparent, var(--hint-card));
+  pointer-events: none;
+}
+
+.hint-copy [role="status"] {
+  flex: none;
+  padding-inline-end: 2.25rem;
+}
+
+.hint-detail {
+  min-block-size: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
 
+.hint-detail h3 {
+  margin: 0 0 .15rem;
+  font-size: .8125rem;
+  font-weight: 700;
+}
+
+.hint-detail p + h3 {
+  margin-block-start: .625rem;
+}
+
 .hint-close {
   position: absolute;
+  z-index: 1;
   inset-block-start: .1rem;
   inset-inline-end: .1rem;
   min-inline-size: 44px;
@@ -464,6 +507,8 @@ h1 {
 }
 
 .hint-more {
+  flex: none;
+  align-self: flex-start;
   min-block-size: 44px;
   padding-block: .4rem;
   color: var(--accent);
@@ -561,6 +606,39 @@ dialog h2 {
 @media (max-width: 31rem) {
   .board-frame:has(+ .controls:not([hidden])) {
     flex-grow: 1;
+  }
+
+  /* Keep room for the board and let the hint absorb any remaining shrinkage. */
+  .board-frame:has(+ .controls:not([hidden]) > .hint-card.expanded) {
+    flex: 1 0 min(220px, 33dvh);
+  }
+
+  .controls:has(> .hint-card.expanded) {
+    flex-shrink: 1;
+    min-block-size: 0;
+  }
+
+  .controls:has(> .hint-card.expanded) > :not(.hint-card) {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 31rem) and (max-height: 44rem) {
+  .hint-card.expanded .hint-copy [role="status"] {
+    padding-inline-end: 0;
+  }
+
+  .hint-card.expanded h2 {
+    display: flex;
+    align-items: center;
+    min-block-size: 2.25rem;
+    padding-inline-end: 7rem;
+  }
+
+  .hint-card.expanded .hint-more {
+    position: absolute;
+    inset-block-start: -.5rem;
+    inset-inline-end: 2.25rem;
   }
 }
 

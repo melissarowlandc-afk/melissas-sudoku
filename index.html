@@ -60,7 +60,15 @@
               <p id="hint-summary"></p>
             </div>
             <button id="hint-more" class="hint-more" type="button" aria-controls="hint-detail" aria-expanded="false" hidden>Explain more ›</button>
-            <p id="hint-detail" hidden></p>
+            <div id="hint-detail" class="hint-detail" role="group" aria-label="Hint explanation" tabindex="0" hidden>
+              <div id="hint-sections" hidden>
+                <h3>How to spot it</h3>
+                <p id="hint-how-to-spot"></p>
+                <h3>On this board</h3>
+                <p id="hint-on-this-board"></p>
+              </div>
+              <p id="hint-detail-fallback" hidden></p>
+            </div>
           </div>
         </section>
 

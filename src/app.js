@@ -34,6 +34,10 @@ const elements = {
   hintClose: byId('hint-close'),
   hintMore: byId('hint-more'),
   hintDetail: byId('hint-detail'),
+  hintSections: byId('hint-sections'),
+  hintHowToSpot: byId('hint-how-to-spot'),
+  hintOnThisBoard: byId('hint-on-this-board'),
+  hintDetailFallback: byId('hint-detail-fallback'),
   pad: byId('pad'),
   gameMessage: byId('game-message'),
   completion: byId('completion'),
@@ -216,21 +220,41 @@ function hintText(text) {
   });
 }
 
+function updateHintScrollCue() {
+  const { hintDetail } = elements;
+  const { clientHeight, scrollHeight, scrollTop } = hintDetail;
+  const remaining = scrollHeight - clientHeight - Math.max(0, scrollTop);
+  hintDetail.classList.toggle('can-scroll-down', clientHeight > 0 && remaining > 1);
+}
+
 function renderHint(game) {
   const { hint, hintExpanded } = game;
   const open = Boolean(hintRequest || hint);
+  const step = hint?.kind === 'step';
+  const expanded = step && hintExpanded;
   elements.hintCard.hidden = !open;
+  elements.hintCard.classList.toggle('expanded', expanded);
   elements.hint.setAttribute('aria-expanded', open);
   if (!open) return;
 
-  const step = hint?.kind === 'step';
   setText(elements.hintTitle, step ? hint.name : hint ? 'Hint' : 'Looking…');
   setText(elements.hintSummary, hintText(hint?.summary));
   elements.hintMore.hidden = !step;
-  elements.hintMore.setAttribute('aria-expanded', hintExpanded);
-  setText(elements.hintMore, hintExpanded ? 'Show less' : 'Explain more ›');
-  elements.hintDetail.hidden = !step || !hintExpanded;
-  setText(elements.hintDetail, hintText(hint?.detail));
+  elements.hintMore.setAttribute('aria-expanded', expanded);
+  setText(elements.hintMore, expanded ? 'Show less' : 'Explain more ›');
+  elements.hintDetail.hidden = !expanded;
+  if (!expanded) return;
+
+  const hasSections = typeof hint.howToSpot === 'string' && typeof hint.onThisBoard === 'string';
+  elements.hintSections.hidden = !hasSections;
+  elements.hintDetailFallback.hidden = hasSections;
+  if (hasSections) {
+    setText(elements.hintHowToSpot, hintText(hint.howToSpot));
+    setText(elements.hintOnThisBoard, hintText(hint.onThisBoard));
+  } else {
+    setText(elements.hintDetailFallback, hintText(hint.detail));
+  }
+  updateHintScrollCue();
 }
 
 function renderMessage() {
@@ -591,6 +615,8 @@ elements.erase.addEventListener('click', () => applyGameAction(selectErase));
 elements.hint.addEventListener('click', requestHint);
 elements.hintClose.addEventListener('click', dismissHint);
 elements.hintMore.addEventListener('click', () => applyGameAction(toggleHintDetail));
+elements.hintDetail.addEventListener('scroll', updateHintScrollCue, { passive: true });
+new ResizeObserver(updateHintScrollCue).observe(elements.hintDetail);
 elements.restart.addEventListener('click', () => {
   confirm('Start this puzzle over?', 'Restart', () => applyGameAction(restart));
 });

@@ -11,6 +11,9 @@ const SEES = PEERS.map((peers) => {
 
 const listFormat = new Intl.ListFormat('en-US');
 const namesOf = (cells) => listFormat.format(cells.map(friendlyCellName));
+const houseKind = (house) => house < 9 ? 'row' : house < 18 ? 'column' : 'box';
+const hintHouseName = (house) => house < 18 ? houseName(house) : `the ${friendlyBoxName(house)}`;
+const sizeInWords = { 2: 'two', 3: 'three', 4: 'four' };
 const cellsAt = (house, mask) => maskDigits(mask).map((position) => HOUSES[house][position - 1]);
 const bitDigit = (bit) => 32 - Math.clz32(bit);
 
@@ -84,8 +87,8 @@ function fullHouse({ grid, candidates }) {
     const digit = bitDigit(missing);
     return {
       pattern: [blank], houses: [house], digits: [digit], placements: [{ cell: blank, digit }],
-      summary: `Look at the only empty square in ${houseName(house)}.`,
-      reason: `${digit} is the only digit missing from ${houseName(house)}.`,
+      summary: `Check off the numbers you see in the highlighted square's ${houseKind(house)}. Find the one that's missing.`,
+      reason: `${digit} is the only number missing from ${hintHouseName(house)}.`,
     };
   }
   return null;
@@ -97,7 +100,7 @@ function nakedSingle({ candidates }) {
   const digit = bitDigit(candidates[cell]);
   return {
     pattern: [cell], houses: [...CELL_HOUSES[cell]], digits: [digit], placements: [{ cell, digit }],
-    summary: `Check which digit is still possible at ${friendlyCellName(cell)}.`,
+    summary: "For the highlighted square, cross off the numbers you see in its row, column, and box. Check what's left.",
     reason: `Only ${digit} is possible at ${friendlyCellName(cell)}.`,
   };
 }
@@ -111,8 +114,8 @@ function hiddenSingle({ positions }) {
       const digit = index + 1;
       return {
         pattern: [cell], houses: [house], digits: [digit], placements: [{ cell, digit }],
-        summary: `Look for a digit with only one possible square in ${houseName(house)}.`,
-        reason: `The square at ${friendlyCellName(cell)} is the only place for ${digit} in ${houseName(house)}.`,
+        summary: `In the highlighted square's ${houseKind(house)}, check where each missing number could go. Look for a number with only one possible square.`,
+        reason: `The square at ${friendlyCellName(cell)} is the only place for ${digit} in ${hintHouseName(house)}.`,
       };
     }
   }
@@ -134,7 +137,7 @@ function pointing({ candidates, positions }) {
         const digit = index + 1;
         return {
           pattern, houses: [box, line], digits: [digit], eliminations,
-          summary: `Look at how the highlighted squares in the ${friendlyBoxName(box)} line up in ${houseName(line)}.`,
+          summary: `In the ${friendlyBoxName(box)}, check one missing number at a time. Look for one that can only go in ${houseName(line)}.`,
           reason: `In the ${friendlyBoxName(box)}, ${digit} can only go in ${namesOf(pattern)}. Those squares are all in ${houseName(line)}, so that line gets its ${digit} inside the box.`,
         };
       }
@@ -157,7 +160,7 @@ function claiming({ candidates, positions }) {
       const digit = index + 1;
       return {
         pattern, houses: [line, box + 18], digits: [digit], eliminations,
-        summary: `Look at the highlighted squares where ${houseName(line)} crosses the ${friendlyBoxName(box + 18)}.`,
+        summary: `Check where each missing number could go in ${houseName(line)}. Look for one that only fits in the ${friendlyBoxName(box + 18)}.`,
         reason: `In ${houseName(line)}, ${digit} can only go in ${namesOf(pattern)}. Those squares are in the same box, so that box gets its ${digit} on that line.`,
       };
     }
@@ -204,8 +207,8 @@ function nakedSubset({ candidates }, size) {
       const digits = maskDigits(mask);
       return {
         pattern, houses: [house], digits, eliminations,
-        summary: `In ${houseName(house)}, compare the candidate lists in the highlighted squares.`,
-        reason: `Between them, the squares at ${namesOf(pattern)} can only contain ${listFormat.format(digits.map(String))}. Those digits are taken, so they can't go elsewhere in ${houseName(house)}.`,
+        summary: `Compare the possible numbers in the highlighted squares in ${hintHouseName(house)}. Check for just ${sizeInWords[size]} different numbers between them.`,
+        reason: `Between them, the squares at ${namesOf(pattern)} can only contain ${listFormat.format(digits.map(String))}. Those numbers can't go elsewhere in ${hintHouseName(house)}.`,
       };
     });
     if (step) return step;
@@ -225,8 +228,8 @@ function hiddenSubset({ candidates, positions }, size) {
       if (!eliminations.length) return null;
       return {
         pattern, houses: [house], digits, eliminations,
-        summary: `Look for digits that have to share the highlighted squares in ${houseName(house)}.`,
-        reason: `In ${houseName(house)}, ${listFormat.format(digits.map(String))} can only go in ${namesOf(pattern)}. They take up those squares, so you can cross out the other candidates there.`,
+        summary: `In ${hintHouseName(house)}, check where each missing number could go. Find ${sizeInWords[size]} numbers that fit only in the highlighted squares.`,
+        reason: `In ${hintHouseName(house)}, ${listFormat.format(digits.map(String))} can only go in ${namesOf(pattern)}. They take up those squares, so you can cross out the other notes there.`,
       };
     });
     if (step) return step;
@@ -254,7 +257,7 @@ function fish({ candidates, positions }, size) {
         const pattern = selected.flatMap(({ house, mask }) => cellsAt(house, mask));
         return {
           pattern, houses: [...bases, ...covers], digits: [digit], eliminations,
-          summary: `Trace how the highlighted squares line up across ${lineGroup(offset)} and ${lineGroup(coverOffset)}.`,
+          summary: `In the ${lineGroup(offset)} with highlights, check one number at a time. Find one whose possible squares span exactly ${sizeInWords[size]} ${lineGroup(coverOffset)}.`,
           reason: `In ${listFormat.format(bases.map(houseName))}, the only places for ${digit} are ${namesOf(pattern)}. They span exactly ${size} ${lineGroup(coverOffset)}, so each of those ${lineGroup(coverOffset)} gets its ${digit} in a highlighted square.`,
         };
       });
@@ -285,7 +288,7 @@ function skyscraper({ candidates, positions }) {
           const cross = 9 - offset + bitDigit(aligned) - 1;
           return {
             pattern, houses: [a, b, cross], digits: [digit], eliminations,
-            summary: `Find the two highlighted squares that line up in ${houseName(cross)}, then follow each pair to its other end.`,
+            summary: `Find a number with two possible squares in both ${houseName(a)} and ${houseName(b)}. Check which squares line up in ${houseName(cross)}.`,
             reason: `There are two places for ${digit} in ${houseName(a)} and two in ${houseName(b)}. The squares at ${namesOf([baseA, baseB])} share ${houseName(cross)} and can't both contain ${digit}. At least one of the other ends at ${namesOf([endA, endB])} must contain it.`,
           };
         }
@@ -315,7 +318,7 @@ function twoStringKite({ candidates, links }) {
             if (!eliminations.length) continue;
             return {
               pattern, houses: [row.house, column.house, box + 18], digits: [digit], eliminations,
-              summary: `Find the highlighted row and column pairs with one square each in the ${friendlyBoxName(box + 18)}.`,
+              summary: `Find a number with two possible squares each in ${houseName(row.house)} and ${houseName(column.house)}. Match one square from each in the ${friendlyBoxName(box + 18)}.`,
               reason: `There are two places for ${digit} in ${houseName(row.house)} and two in ${houseName(column.house)}. The squares at ${namesOf([nearA, nearB])} share a box and can't both contain ${digit}. At least one of the other ends at ${namesOf([endA, endB])} must contain it.`,
             };
           }
@@ -351,9 +354,11 @@ function xyWing({ candidates }, pivotSize) {
         const reason = pivotSize === 2
           ? `${forces} A square that shares a row, column, or box with each of those two outer squares can't contain ${digit}.`
           : `${forces} The first square could also contain ${digit}. A square that shares a row, column, or box with each of the three highlighted squares can't contain ${digit}.`;
+        const summary = pivotSize === 2
+          ? `Start at ${pivotName}. Find the number the other two highlighted squares share, then check what each shares with your starting square.`
+          : `Start at ${pivotName}. Compare its three possible numbers with the two in each of the other highlighted squares.`;
         return {
-          pattern, houses: joiningHouses([[pivot, a], [pivot, b]]), digits: maskDigits(union), eliminations,
-          summary: `Compare the candidates at ${pivotName} with those in the other two highlighted squares.`, reason,
+          pattern, houses: joiningHouses([[pivot, a], [pivot, b]]), digits: maskDigits(union), eliminations, summary, reason,
         };
       }
     }
@@ -379,8 +384,8 @@ function wWing({ candidates, links }) {
           const pattern = [a, nearA, nearB, b];
           return {
             pattern, houses: [...new Set([house, ...joiningHouses([[a, nearA], [nearB, b]])])], digits, eliminations,
-            summary: `Look for two highlighted squares with the same pair of candidates, then trace the link between them.`,
-            reason: `In ${houseName(house)}, ${linkDigit} must go in either ${friendlyCellName(nearA)} or ${friendlyCellName(nearB)}. Either choice rules out ${linkDigit} in one of the matching squares at ${namesOf([a, b])}, so at least one of them must contain ${digit}.`,
+            summary: 'Match two highlighted squares with the same two possible numbers. Follow one of those numbers through the other two highlighted squares.',
+            reason: `In ${hintHouseName(house)}, ${linkDigit} must go in either ${friendlyCellName(nearA)} or ${friendlyCellName(nearB)}. Either choice rules out ${linkDigit} in one of the matching squares at ${namesOf([a, b])}, so at least one of them must contain ${digit}.`,
           };
         }
       }
@@ -410,7 +415,7 @@ function colorComponent(candidates, digit, start, graph, colors) {
 
   const groups = [[], []];
   for (const cell of pattern) groups[colors[cell]].push(cell);
-  const summary = 'Follow the connections between the highlighted squares, imagining two colors that alternate at each link.';
+  const summary = 'Follow one number through the highlighted squares. Switch colors whenever a row, column, or box limits that number to two squares.';
   const linkReason = `Start at ${friendlyCellName(start)}. Each link joins two squares that are the only places for ${digit} in a row, column, or box. Use opposite colors for the two squares at each link. One color marks squares that contain ${digit}, and the other marks squares that rule it out.`;
   for (const group of groups) {
     for (let i = 0; i < group.length; i++) {
@@ -476,7 +481,7 @@ function uniqueRectangle({ candidates }) {
             pattern,
             houses: [rowA, rowB, 9 + colA, 9 + colB, ...new Set(pattern.map((cell) => boxOf(cell) + 18))],
             digits, eliminations: digits.map((digit) => ({ cell: extra, digit })),
-            summary: `Compare the candidates in the four highlighted squares that form a rectangle across two boxes.`,
+            summary: 'Find three highlighted corners with the same two possible numbers. Check what else fits in the fourth corner.',
             reason: `The three corners at ${namesOf(pairs)} are limited to ${listFormat.format(digits.map(String))}. If the fourth corner at ${friendlyCellName(extra)} used either digit, the two digits would alternate around the rectangle. Swapping them would keep the same digits in each row, column, and box and give a second solution. The fourth corner needs a different digit.`,
           };
         }
@@ -506,7 +511,7 @@ function xyChain({ candidates }) {
             return {
               pattern: path.slice(), houses: joiningHouses(pairs),
               digits: maskDigits(path.reduce((mask, member) => mask | candidates[member], 0)), eliminations,
-              summary: 'Follow the shared candidates through the highlighted squares.',
+              summary: 'Trace the shared numbers through the highlighted squares. At each square, switch to its other number and look for the same number at both ends.',
               reason: `Trace the chain through ${namesOf(path)} in that order. If the first square doesn't contain ${digit}, its other candidate rules out that choice in the next square. Then each square forces the next choice until the last square must contain ${digit}. A square that shares a row, column, or box with each end can't contain ${digit}.`,
             };
           }
@@ -530,28 +535,123 @@ function xyChain({ candidates }) {
 }
 
 const METHODS = [
-  ['full-house', 'Full House', 1, 1, fullHouse],
-  ['naked-single', 'Naked Single', 1, 2, nakedSingle],
-  ['hidden-single', 'Hidden Single', 1, 4, hiddenSingle],
-  ['pointing', 'Pointing', 2, 8, pointing],
-  ['claiming', 'Claiming', 2, 9, claiming],
-  ['naked-pair', 'Naked Pair', 3, 14, (state) => nakedSubset(state, 2)],
-  ['hidden-pair', 'Hidden Pair', 3, 16, (state) => hiddenSubset(state, 2)],
-  ['naked-triple', 'Naked Triple', 3, 18, (state) => nakedSubset(state, 3)],
-  ['hidden-triple', 'Hidden Triple', 3, 20, (state) => hiddenSubset(state, 3)],
-  ['naked-quad', 'Naked Quad', 4, 24, (state) => nakedSubset(state, 4)],
-  ['hidden-quad', 'Hidden Quad', 4, 26, (state) => hiddenSubset(state, 4)],
-  ['x-wing', 'X-Wing', 4, 29, (state) => fish(state, 2)],
-  ['swordfish', 'Swordfish', 5, 37, (state) => fish(state, 3)],
-  ['skyscraper', 'Skyscraper', 5, 39, skyscraper],
-  ['two-string-kite', 'Two-String Kite', 5, 41, twoStringKite],
-  ['xy-wing', 'XY-Wing', 5, 43, (state) => xyWing(state, 2)],
-  ['xyz-wing', 'XYZ-Wing', 5, 45, (state) => xyWing(state, 3)],
-  ['w-wing', 'W-Wing', 5, 47, wWing],
-  ['simple-coloring', 'Simple Coloring', 5, 49, simpleColoring],
-  ['jellyfish', 'Jellyfish', 6, 56, (state) => fish(state, 4)],
-  ['unique-rectangle-type-1', 'Unique Rectangle Type 1', 6, 60, uniqueRectangle],
-  ['xy-chain', 'XY-Chain', 6, 64, xyChain],
+  ['full-house', 'Full House', 1, 1, fullHouse,
+    'Scan for a row, column, or box with just one empty square. ' +
+    'Count from one to nine and check each number against the ones you see. ' +
+    "Put the number you're missing in the last empty square."],
+  ['naked-single', 'Naked Single', 1, 2, nakedSingle,
+    'Start with an empty square in a part of the board that is already well filled in. ' +
+    'Check its row, column, and box and rule out every number you see there. ' +
+    'If just one number remains, put it in that square.'],
+  ['hidden-single', 'Hidden Single', 1, 4, hiddenSingle,
+    'Pick a row, column, or box and take one of its missing numbers. ' +
+    "Check each empty square's row, column, and box for that number to rule out squares. " +
+    'If only one square in your chosen row, column, or box can take the number, put it there. ' +
+    'To sweep the board, try looking for the same number in all nine boxes.'],
+  ['pointing', 'Pointing', 2, 8, pointing,
+    "Pick a box and a number it's missing. " +
+    'Check the crossing rows and columns to find every square in the box where that number fits. ' +
+    'If those squares all line up in one row or column, that line gets the number inside the box. ' +
+    'Cross the number off the rest of that row or column.'],
+  ['claiming', 'Claiming', 2, 9, claiming,
+    "Pick a row or column and a number it's missing. " +
+    'Check the crossing lines and the boxes to find every square on that line where the number fits. ' +
+    'If all those squares sit in the same box, that box gets the number on your chosen line. ' +
+    'Cross the number off the squares in the box outside that line.'],
+  ['naked-pair', 'Naked Pair', 3, 14, (state) => nakedSubset(state, 2),
+    'Pick a row, column, or box and scan its squares with exactly two penciled-in numbers. ' +
+    'Look for two squares with the same two numbers. ' +
+    'Those two squares must use one number each, so cross both numbers off the other squares there.'],
+  ['hidden-pair', 'Hidden Pair', 3, 16, (state) => hiddenSubset(state, 2),
+    'In one row, column, or box, check where each missing number could go. ' +
+    'Look for two numbers that can both go in exactly the same two squares. ' +
+    'Those numbers must fill the two squares. ' +
+    'Keep those two numbers in the squares and cross out any other notes there.'],
+  ['naked-triple', 'Naked Triple', 3, 18, (state) => nakedSubset(state, 3),
+    'In one row, column, or box, look at the squares with two or three possible numbers. ' +
+    'Try groups of three squares and count the different numbers across them. ' +
+    'If you count exactly three numbers, those squares must use them up. ' +
+    'Cross those numbers off the other squares in that row, column, or box.'],
+  ['hidden-triple', 'Hidden Triple', 3, 20, (state) => hiddenSubset(state, 3),
+    'Pick a row, column, or box and look for numbers that fit in two or three squares. ' +
+    'Try three of those numbers and count all the squares where any of the three could go. ' +
+    'If you count exactly three squares, those numbers must fill them. ' +
+    'Cross out all other notes in just those three squares.'],
+  ['naked-quad', 'Naked Quad', 4, 24, (state) => nakedSubset(state, 4),
+    'Pick a row, column, or box and start with the squares that have the fewest possible numbers. ' +
+    'Try four squares at a time, skipping any square with more than four possibilities. ' +
+    'When four squares have just four different numbers between them, they must use those numbers. ' +
+    'Cross those numbers off the other squares in that row, column, or box.'],
+  ['hidden-quad', 'Hidden Quad', 4, 26, (state) => hiddenSubset(state, 4),
+    'In one row, column, or box, start with missing numbers that have between two and four possible squares. ' +
+    'Try four of those numbers and count the different squares where any of them could go. ' +
+    'If they fit in just four squares altogether, those squares are reserved for the four numbers. ' +
+    'Cross out any other notes in those four squares.'],
+  ['x-wing', 'X-Wing', 4, 29, (state) => fish(state, 2),
+    'Pick one number and scan for rows with exactly two places it can go. ' +
+    'Find two such rows where the possible squares line up in the same two columns. ' +
+    'Each column gets the number in one of those rows, so cross it off elsewhere in those columns. ' +
+    'You can also start with columns and look for matching rows.'],
+  ['swordfish', 'Swordfish', 5, 37, (state) => fish(state, 3),
+    'Pick one number and mark its possible squares in rows where it has two or three choices. ' +
+    'Find three of those rows whose marks land in just three columns total. ' +
+    'Each of those columns gets the number in one of the three rows. ' +
+    'Cross it off in those columns outside your three rows. ' +
+    'You can also start with columns and count the rows your marks touch.'],
+  ['skyscraper', 'Skyscraper', 5, 39, skyscraper,
+    'Pick a number and mark the rows where it has exactly two possible squares. ' +
+    'Find two of those rows where just one marked square from each lines up in a column. ' +
+    "The two lined-up squares can't both hold the number, so at least one of the other two must. " +
+    'Cross it off any square that shares a row, column, or box with each of those other two squares. ' +
+    'You can also do this scan with rows and columns swapped.'],
+  ['two-string-kite', 'Two-String Kite', 5, 41, twoStringKite,
+    'Pick a number and find a row and a column that each have just two possible squares for it. ' +
+    'Look for two different squares in the same box, one from the row and one from the column. ' +
+    'The other two squares must be outside that box. ' +
+    "The two inside squares can't both hold the number, so at least one of the outside squares does. " +
+    'Cross it off any square that shares a row, column, or box with each outside square.'],
+  ['xy-wing', 'XY-Wing', 5, 43, (state) => xyWing(state, 2),
+    'Start at a square with two possible numbers. ' +
+    'Search its row, column, and box for two other squares with two possibilities each. ' +
+    'Each must share a different number with your starting square, and both must share the same third number. ' +
+    'Either choice at the start puts that third number in one of the other two squares. ' +
+    'Cross it off any square that shares a row, column, or box with each of those two squares.'],
+  ['xyz-wing', 'XYZ-Wing', 5, 45, (state) => xyWing(state, 3),
+    'Start at a square with three possible numbers. ' +
+    'Search its row, column, and box for two squares that each have only two of those numbers. ' +
+    'Look for two different combinations, so exactly one number appears in all three squares. ' +
+    'That shared number must go in one of the three. ' +
+    'Cross it off any square that shares a row, column, or box with each of the three.'],
+  ['w-wing', 'W-Wing', 5, 47, wWing,
+    'Find two squares with the same two possible numbers that share no row, column, or box. ' +
+    'Pick one of their numbers and look for a row, column, or box with just two spots for it. ' +
+    'Each matching square must share a row, column, or box with a different one of those spots. ' +
+    'One spot must hold the chosen number, forcing one of the matching squares to take its other number. ' +
+    'Cross that other number off any square that shares a row, column, or box with each matching square.'],
+  ['simple-coloring', 'Simple Coloring', 5, 49, simpleColoring,
+    'Pick a number and give its two possible squares in a row, column, or box different colors. ' +
+    'From a colored square, look for another row, column, or box where it is one of just two choices. ' +
+    'Give the other square the opposite color and keep going. ' +
+    'If two squares of one color share a row, column, or box, cross the number off every square of that color. ' +
+    'Also cross it off any uncolored square that shares a row, column, or box with a square of each color.'],
+  ['jellyfish', 'Jellyfish', 6, 56, (state) => fish(state, 4),
+    'Pick one number and look for rows where it fits in two to four squares. ' +
+    'Try four such rows and count the different columns where the number could go in those rows. ' +
+    'If the total is exactly four, each of those columns gets the number in one of your four rows. ' +
+    'Cross it off elsewhere in those columns. ' +
+    'You can also start with columns and count rows.'],
+  ['unique-rectangle-type-1', 'Unique Rectangle Type 1', 6, 60, uniqueRectangle,
+    'Start with two squares in a row that have just the same two possible numbers. ' +
+    'In another row, check those columns for a third matching square and a fourth with both numbers plus an extra. ' +
+    'Check that the four corners lie in exactly two boxes. ' +
+    'If the fourth square used either shared number, swapping the two numbers around the rectangle would give a second solution. ' +
+    'In a puzzle with one solution, cross both shared numbers off the fourth square.'],
+  ['xy-chain', 'XY-Chain', 6, 64, xyChain,
+    'Start at a square with two possible numbers and set one number aside. ' +
+    'Follow the other number to a square with two possibilities that shares it and lies in the same row, column, or box. ' +
+    'At each new square, switch to its other number and keep going without revisiting squares. ' +
+    'Look for a route of at least four squares that ends when you switch back to the number you set aside. ' +
+    'Cross it off any square outside the route that shares a row, column, or box with each end.'],
 ];
 
 export const TECHNIQUES = Object.freeze(METHODS.map(([id, name, tier, weight]) =>
@@ -566,7 +666,7 @@ export function findStep(grid, candidates, { maxTier = 6, technique, assumeUniqu
     get links() { return links ??= strongLinks(this.positions); },
   };
 
-  for (const [id, name, tier, , find] of METHODS) {
+  for (const [id, name, tier, , find, howToSpot] of METHODS) {
     if (tier > maxTier) break;
     if (technique && id !== technique) continue;
     if (!assumeUnique && id === 'unique-rectangle-type-1') continue;
@@ -580,9 +680,11 @@ export function findStep(grid, candidates, { maxTier = 6, technique, assumeUniqu
       removalsByDigit.get(digit).push(cell);
     }
     const remove = Array.from(removalsByDigit, ([digit, cells]) => `Remove ${digit} from ${namesOf(cells)}.`);
-    const detail = [reason, place.length && `Place ${listFormat.format(place)}.`, ...remove]
+    const pencilIn = tier >= 3 && "If you haven't already, pencil in the possible numbers for the highlighted squares.";
+    const onThisBoard = [pencilIn, reason, place.length && `Place ${listFormat.format(place)}.`, ...remove]
       .filter(Boolean).join(' ');
-    return { technique: id, name, tier, pattern, houses, digits, placements, eliminations, summary, detail };
+    const detail = `How to spot it. ${howToSpot} On this board. ${onThisBoard}`;
+    return { technique: id, name, tier, pattern, houses, digits, placements, eliminations, summary, detail, howToSpot, onThisBoard };
   }
   return null;
 }
